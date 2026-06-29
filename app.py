@@ -107,10 +107,8 @@ if uploaded_file is not None:
                                 type="primary"
                             )
                         
-                        st.subheader("Report Preview")
-                        base64_pdf = base64.b64encode(pdf_bytes).decode('utf-8')
-                        pdf_display = f'<embed src="data:application/pdf;base64,{base64_pdf}" width="100%" height="1000" type="application/pdf">'
-                        st.markdown(pdf_display, unsafe_allow_html=True)
+                            st.subheader("Report Preview")
+                            pdf_viewer(out_pdf_path)
                         
                     else:
                         st.error("Report failed to generate. Check your script logic.")
