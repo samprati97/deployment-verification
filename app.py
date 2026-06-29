@@ -108,9 +108,7 @@ if uploaded_file is not None:
                             )
                         
                         st.subheader("Report Preview")
-                        
-                        # Use the viewer but crank the resolution up to 300 DPI for crisp text
-                        pdf_viewer(out_pdf_path, resolution=300)
+                        pdf_viewer(out_pdf_path)
                         
                     else:
                         st.error("Report failed to generate. Check your script logic.")
