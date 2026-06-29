@@ -93,13 +93,13 @@ else:
             try:
                 sample = pd.read_csv(csv_path, encoding='utf-16', sep='\t', usecols=["Date Hour"])
                 sample = sample.rename(columns={"Date Hour": "date_hour"})
-                sample["date_hour"] = pd.to_datetime(sample["date_hour"].astype(str).str.strip())
-                dates = sorted(sample["date_hour"].dt.strftime("%Y-%m-%d").unique())
+                sample["date_hour"] = pd.to_datetime(sample["date_hour"].astype(str).str.strip(), errors='coerce')
+                dates = sorted(sample["date_hour"].dropna().dt.strftime("%Y-%m-%d").unique())
             except Exception as e:
                 print(f"\n  ERROR reading CSV: {e}")
                 sys.exit(1)
             if not dates:
-                print("\n  ERROR: No date_hour data found in CSV.")
+                print("\n  ERROR: No valid date_hour data found in CSV.")
                 sys.exit(1)
             print(f"\nAvailable dates in the file ({len(dates)} found):")
             for i, d in enumerate(dates, 1):
@@ -173,7 +173,8 @@ else:
             try:
                 hrs_df = pd.read_csv(csv_path, encoding='utf-16', sep='\t', usecols=["Date Hour"])
                 hrs_df = hrs_df.rename(columns={"Date Hour": "date_hour"})
-                hrs_df["date_hour"] = pd.to_datetime(hrs_df["date_hour"].astype(str).str.strip())
+                hrs_df["date_hour"] = pd.to_datetime(hrs_df["date_hour"].astype(str).str.strip(), errors='coerce')
+                hrs_df = hrs_df.dropna(subset=["date_hour"]) # Drop the trailing NaN
                 hrs_df["date_str"]  = hrs_df["date_hour"].dt.strftime("%Y-%m-%d")
                 hrs_df["hour"]      = hrs_df["date_hour"].dt.hour
                 rel_hours = hrs_df[hrs_df["date_str"] == release_date]["hour"]
@@ -269,9 +270,16 @@ df = df.rename(columns={
     'demand_type':    'demand_type_name',
     'bonus_or_paid':  'line_item_bonus_paid',
 })
-df["date_hour"] = pd.to_datetime(df["date_hour"].astype(str).str.strip())
+
+# --- DATA CLEANING FIX ---
+# Coerce invalid/empty dates to NaT, then drop those completely corrupt rows.
+df["date_hour"] = pd.to_datetime(df["date_hour"].astype(str).str.strip(), errors='coerce')
+df = df.dropna(subset=["date_hour"])
+
 df["date_str"]  = df["date_hour"].dt.strftime("%Y-%m-%d")
-df["hour"]      = df["date_hour"].dt.hour
+# Force the hour column to be an integer so it never gets interpreted as a float!
+df["hour"]      = df["date_hour"].dt.hour.astype(int)
+
 for c in df.select_dtypes("object").columns:
     df[c] = df[c].str.strip().str.replace('"','', regex=False)
 for col in METRICS:
@@ -283,16 +291,18 @@ if ENV_FILTER:
 if REGION_FILTER:
     df = df[df["aws_region"] == REGION_FILTER]
 if EXCLUDE_LAST_HR:
-    max_hr = df[df["date_str"]==RELEASE_DATE]["hour"].max()
+    max_hr = int(df[df["date_str"]==RELEASE_DATE]["hour"].max())
     df = df[~((df["date_str"]==RELEASE_DATE)&(df["hour"]==max_hr))]
-    print(f" Excluded hour {int(max_hr):02d}:00 on release day")
+    print(f" Excluded hour {max_hr:02d}:00 on release day")
  
 # ──────────────────────────────────────────────────────────────────────────────
 # 2. WINDOWS
 # ──────────────────────────────────────────────────────────────────────────────
 rel  = df[df["date_str"]==RELEASE_DATE].copy()
 comp = df[df["date_str"]==COMPARE_DATE].copy()
-max_rel_hour = rel["hour"].max()
+
+# Because we forced df["hour"] to int earlier, max_rel_hour is guaranteed to be an int
+max_rel_hour = int(rel["hour"].max()) if not rel.empty else 23
  
 rel_post   = rel[rel["hour"] >= RELEASE_HOUR]
 comp_post  = comp[(comp["hour"] >= RELEASE_HOUR) & (comp["hour"] <= max_rel_hour)]
@@ -311,9 +321,9 @@ def add_rates(g):
     g["throttling_rate"]       = np.where(g["publisher_requests"]>0, g["throttled_requests"]/(g["publisher_requests"]+eps), np.nan)
     g["response_rate"]         = np.where(g["delivery_requests"]>0,  g["responses"]/(g["delivery_requests"]+eps), np.nan)
     g["win_rate"]              = np.where(g["responses"]>0,          g["wins"]/(g["responses"]+eps), np.nan)
-    g["impression_rate"]       = np.where(g["wins"]>0,              g["impressions"]/(g["wins"]+eps), np.nan)
-    g["ctr"]                   = np.where(g["impressions"]>0,       g["clicks"]/(g["impressions"]+eps), np.nan)
-    g["margin"]                = np.where(g["revenue"]>0,           g["profits"]/(g["revenue"]+eps), np.nan)
+    g["impression_rate"]       = np.where(g["wins"]>0,               g["impressions"]/(g["wins"]+eps), np.nan)
+    g["ctr"]                   = np.where(g["impressions"]>0,        g["clicks"]/(g["impressions"]+eps), np.nan)
+    g["margin"]                = np.where(g["revenue"]>0,            g["profits"]/(g["revenue"]+eps), np.nan)
     g["video_completion_rate"] = np.where(g["video_impressions"]>0, g["video_completes"]/(g["video_impressions"]+eps), np.nan)
     return g
  
@@ -374,7 +384,7 @@ for _, row in pre_diff.iterrows():
             pre_drops_all.append({**dim_dict,"kpi":kpi,"today":t,"yesterday":y,"delta":d2,"pct":pct})
  
 df_drops_rel   = pd.DataFrame(drops_release).sort_values("pct")  if drops_release else pd.DataFrame()
-df_drops_trend = pd.DataFrame(drops_trend).sort_values("pct")    if drops_trend   else pd.DataFrame()
+df_drops_trend = pd.DataFrame(drops_trend).sort_values("pct")    if drops_trend  else pd.DataFrame()
 df_inc         = pd.DataFrame(increases).sort_values("pct",ascending=False) if increases else pd.DataFrame()
 df_pre_drops   = pd.DataFrame(pre_drops_all).sort_values("pct")  if pre_drops_all else pd.DataFrame()
  
