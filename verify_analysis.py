@@ -285,7 +285,7 @@ if REGION_FILTER:
 if EXCLUDE_LAST_HR:
     max_hr = df[df["date_str"]==RELEASE_DATE]["hour"].max()
     df = df[~((df["date_str"]==RELEASE_DATE)&(df["hour"]==max_hr))]
-    print(f"  Excluded hour {max_hr:02d}:00 on release day")
+    print(f" Excluded hour {int(max_hr):02d}:00 on release day")
  
 # ──────────────────────────────────────────────────────────────────────────────
 # 2. WINDOWS
