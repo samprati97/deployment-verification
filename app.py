@@ -17,12 +17,17 @@ st.markdown("Upload your Athena/Presto CSV to generate the verification PDF repo
 uploaded_file = st.file_uploader("Upload CSV Data File", type=["csv"])
 
 if uploaded_file is not None:
-    # --- Step 2: Read Dates from CSV ---
+# --- Step 2: Read Dates from CSV ---
     try:
         df = pd.read_csv(uploaded_file, encoding='utf-16', sep='\t', usecols=["Date Hour"])
         df = df.rename(columns={"Date Hour": "date_hour"})
-        df["date_hour"] = pd.to_datetime(df["date_hour"].astype(str).str.strip())
-        available_dates = sorted(df["date_hour"].dt.strftime("%Y-%m-%d").unique())
+        
+        # 'errors="coerce"' turns the empty trailing row into a safe null value (NaT)
+        df["date_hour"] = pd.to_datetime(df["date_hour"].astype(str).str.strip(), errors='coerce')
+        
+        # '.dropna()' removes that null value before attempting to sort the dates
+        available_dates = sorted(df["date_hour"].dropna().dt.strftime("%Y-%m-%d").unique())
+        
     except Exception as e:
         st.error(f"Error reading dates from CSV: {e}")
         st.stop()
