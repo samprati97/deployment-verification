@@ -5,6 +5,7 @@ import os
 import sys  # <-- Added to get the exact python path
 import tempfile
 import base64
+from streamlit_pdf_viewer import pdf_viewer
 
 # --- UI Configuration ---
 st.set_page_config(page_title="AdServer Verification", layout="centered")
