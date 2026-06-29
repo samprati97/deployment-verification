@@ -55,7 +55,7 @@ if uploaded_file is not None:
 
     st.divider()
 
-    # --- Step 4: Run Script ---
+# --- Step 4: Run Script ---
     if st.button("Generate Verification Report", type="primary", use_container_width=True):
         if release_date == compare_date:
             st.error("Deployment date and Comparison date must be different.")
@@ -107,23 +107,21 @@ if uploaded_file is not None:
                                 type="primary"
                             )
                         
-                            # st.subheader("Report Preview")
-                            # pdf_viewer(out_pdf_path)
-                    st.subheader("Report Preview")
+                        st.subheader("Report Preview")
 
-                    # Encode the pdf_bytes we read earlier for the download button
-                    base64_pdf = base64.b64encode(pdf_bytes).decode('utf-8')
-                    
-                    # Create an HTML link styled to look like a Streamlit button
-                    view_button = f'''
-                    <a href="data:application/pdf;base64,{base64_pdf}" target="_blank" 
-                       style="display: inline-block; padding: 0.5rem 1rem; color: white; background-color: #FF4B4B; 
-                              text-decoration: none; border-radius: 4px; font-weight: bold; font-family: sans-serif;">
-                       📄 View Report in New Tab
-                    </a>
-                    <br><br>
-                    '''
-                    st.markdown(view_button, unsafe_allow_html=True)
+                        # Encode the pdf_bytes we read earlier for the download button
+                        base64_pdf = base64.b64encode(pdf_bytes).decode('utf-8')
+                        
+                        # Create an HTML link styled to look like a Streamlit button
+                        view_button = f'''
+                        <a href="data:application/pdf;base64,{base64_pdf}" target="_blank" 
+                           style="display: inline-block; padding: 0.5rem 1rem; color: white; background-color: #FF4B4B; 
+                                  text-decoration: none; border-radius: 4px; font-weight: bold; font-family: sans-serif;">
+                           📄 View Report in New Tab
+                        </a>
+                        <br><br>
+                        '''
+                        st.markdown(view_button, unsafe_allow_html=True)
                         
                     else:
                         st.error("Report failed to generate. Check your script logic.")
