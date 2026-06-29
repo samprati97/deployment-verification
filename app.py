@@ -108,20 +108,9 @@ if uploaded_file is not None:
                             )
                         
                         st.subheader("Report Preview")
-
-                        # Encode the pdf_bytes we read earlier for the download button
-                        base64_pdf = base64.b64encode(pdf_bytes).decode('utf-8')
                         
-                        # Create an HTML link styled to look like a Streamlit button
-                        view_button = f'''
-                        <a href="data:application/pdf;base64,{base64_pdf}" target="_blank" 
-                           style="display: inline-block; padding: 0.5rem 1rem; color: white; background-color: #FF4B4B; 
-                                  text-decoration: none; border-radius: 4px; font-weight: bold; font-family: sans-serif;">
-                           📄 View Report in New Tab
-                        </a>
-                        <br><br>
-                        '''
-                        st.markdown(view_button, unsafe_allow_html=True)
+                        # Use the viewer but crank the resolution up to 300 DPI for crisp text
+                        pdf_viewer(out_pdf_path, resolution=300)
                         
                     else:
                         st.error("Report failed to generate. Check your script logic.")
